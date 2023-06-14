@@ -322,4 +322,4 @@
       select2($inputs, true);
     });
   });
-})(jQuery);
+})(jQuery || django.jQuery);

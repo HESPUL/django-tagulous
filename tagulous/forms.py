@@ -1,7 +1,8 @@
 import json
 
+from django import VERSION as DJANGO_VERSION
 from django import forms
-from django.contrib.admin.widgets import SELECT2_TRANSLATIONS, AutocompleteMixin
+from django.contrib.admin import widgets
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.urls import NoReverseMatch, reverse
@@ -104,6 +105,23 @@ class TagWidget(TagWidgetBase):
         js = settings.AUTOCOMPLETE_JS
 
 
+
+# Get the media from the AutocompleteMixin - this will give us Django's
+# vendored jQuery and select2
+if (DJANGO_VERSION >= (4,1)) :
+    class GetMedia(widgets.AutocompleteMixin, forms.Select):
+        def __init__(self):
+            self.i18n_name = widgets.get_select2_language()
+    AUTOCOMPLETE_MIXIN_MEDIA = GetMedia().media
+elif (DJANGO_VERSION >= (4,)) :
+    class GetMedia(widgets.AutocompleteMixin, forms.Select):
+        def __init__(self):
+            self.i18n_name = widgets.SELECT2_TRANSLATIONS.get(get_language())
+    AUTOCOMPLETE_MIXIN_MEDIA = GetMedia().media
+else:
+    AUTOCOMPLETE_MIXIN_MEDIA = widgets.AutocompleteMixin.media.fget(None)
+
+
 class AdminTagWidget(TagWidgetBase):
     """
     Tag widget for admin forms
@@ -117,15 +135,7 @@ class AdminTagWidget(TagWidgetBase):
 
     @property
     def media(self):
-        # Get the media from the AutocompleteMixin - this will give us Django's
-        # vendored jQuery and select2
-        class GetMedia(AutocompleteMixin, forms.Select):
-            def __init__(self):
-                self.i18_name = SELECT2_TRANSLATIONS.get(get_language())
-
-        media = GetMedia().media
-
-        return media + forms.Media(
+        return AUTOCOMPLETE_MIXIN_MEDIA + forms.Media(
             js=settings.ADMIN_AUTOCOMPLETE_JS,
             css=settings.ADMIN_AUTOCOMPLETE_CSS,
         )
